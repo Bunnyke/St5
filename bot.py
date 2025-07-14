@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Bot configuration
 TOKEN = "8039426526:AAFSqWU-fRl_gwTPqYLK8yxuS0N9at1hC4s"  # Replace with your Telegram bot token
-DOMAIN = "https://infiniteautwerks.com/"
+DOMAIN = "https://infiniteautwerks.com/"  # Corrected domain
 PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"
 
 def parseX(data, start, end):
@@ -164,7 +164,7 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Available commands:\n"
         "/cmds - Show this help message\n"
         "/chk <card> - Check a single card (format: CC|MM|YY|CVV)\n"
-        "/mchk <cards> - Check multiple cards (up to 10, one per line, format: CC|MM|YY|CVV)"
+        "/mchk <cards> - Check multiple cards (up to 10, one per line or space-separated, format: CC|MM|YY|CVV)"
     )
 
 async def chk(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -214,10 +214,12 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start_time = time.time()
     user = update.effective_user
     if not context.args:
-        await update.message.reply_text("Please provide cards (up to 10, one per line, format: CC|MM|YY|CVV)")
+        await update.message.reply_text("Please provide cards (up to 10, one per line or space-separated, format: CC|MM|YY|CVV)")
         return
 
-    cards = " ".join(context.args).strip().split("\n")[:10]
+    # Join args and split by newlines or spaces
+    input_text = " ".join(context.args).strip()
+    cards = [card.strip() for card in (input_text.replace("\n", " ").split())][:10]
     if not cards:
         await update.message.reply_text("No valid cards provided.")
         return
@@ -228,10 +230,11 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
     )
     for card in cards:
-        card = card.strip()
         if not card:
             continue
         try:
+            # Ensure card is in correct format
+            cc, mon, year, cvv = card.split("|")
             result = await ppc(card)
             try:
                 response_json = json.loads(result)
@@ -245,6 +248,13 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"<b>💳 Card:</b> <code>{card}</code>\n"
                 f"<b>🟠 Status:</b> {status}\n"
                 f"<b>📝 Reason:</b> {reason}\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            )
+        except ValueError:
+            response += (
+                f"<b>💳 Card:</b> <code>{card}</code>\n"
+                f"<b>🟠 Status:</b> <b>❌ Error</b>\n"
+                f"<b>📝 Reason:</b> Invalid card format (expected CC|MM|YY|CVV)\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
             )
         except Exception as e:
