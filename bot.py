@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Bot configuration
 TOKEN = "8039426526:AAFSqWU-fRl_gwTPqYLK8yxuS0N9at1hC4s"  # Replace with your Telegram bot token
-DOMAIN = "https://infiniteautwerks.com/"  # Corrected domain
-PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"
+DOMAIN = "https://scandictech.no/"  # Updated to match the site in the image
+PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"  # Replace with the key from source if different
 
 def parseX(data, start, end):
     try:
