@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Bot configuration
 TOKEN = "8039426526:AAFSqWU-fRl_gwTPqYLK8yxuS0N9at1hC4s"  # Replace with your Telegram bot token
-DOMAIN = "https://infiniteautowerks.com/"
+DOMAIN = "https://infiniteautwerks.com/"
 PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"
 
 def parseX(data, start, end):
@@ -222,7 +222,11 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No valid cards provided.")
         return
 
-    response = f"🎯 MASS STRIPE AUTH\nLimit Used: {len(cards)}/10\n━━━━━━━━━━━━━━━━━━━━\n\n"
+    response = (
+        f"<b>🎯 MASS STRIPE AUTH</b>\n"
+        f"<b>📊 Limit Used:</b> {len(cards)} / 10\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    )
     for card in cards:
         card = card.strip()
         if not card:
@@ -231,43 +235,43 @@ async def mchk(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = await ppc(card)
             try:
                 response_json = json.loads(result)
-                status = "✅ Approved" if response_json.get("success") else "❌ Declined"
+                status = "<b>✅ Approved</b>" if response_json.get("success") else "<b>❌ Declined</b>"
                 reason = response_json.get("message", "No response message")
             except json.JSONDecodeError:
-                status = "❌ Error"
+                status = "<b>❌ Error</b>"
                 reason = result if result else "Invalid response"
 
             response += (
-                f"💳 {card}\n"
-                f"🟠 Status: {status}\n"
-                f"📝 Reason: {reason}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"<b>💳 Card:</b> <code>{card}</code>\n"
+                f"<b>🟠 Status:</b> {status}\n"
+                f"<b>📝 Reason:</b> {reason}\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
             )
         except Exception as e:
             response += (
-                f"💳 {card}\n"
-                f"🟠 Status: ❌ Error\n"
-                f"📝 Reason: {str(e)}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"<b>💳 Card:</b> <code>{card}</code>\n"
+                f"<b>🟠 Status:</b> <b>❌ Error</b>\n"
+                f"<b>📝 Reason:</b> {str(e)}\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
             )
 
     elapsed_time = round(time.time() - start_time, 2)
     response += (
-        f"⏱️ Checked in: {elapsed_time}s\n"
-        f"👤 Checked By: {user.first_name} [ FREE USER ]\n"
-        f"🔧 Powered by: Dev"
+        f"<b>⏱️ Time:</b> {elapsed_time}s\n"
+        f"<b>🙋 Checked By:</b> FREE USER\n"
+        f"<b>🔧 Dev:</b> Bunnyke Team"
     )
-    await update.message.reply_text(response)
+    await update.message.reply_text(response, parse_mode="HTML")
 
-async def main():
-    """Start the Telegram bot."""
+def main():
+    """Start the Telegram bot with proper event loop handling."""
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("cmds", cmds))
     application.add_handler(CommandHandler("chk", chk))
     application.add_handler(CommandHandler("mchk", mchk))
 
-    await application.run_polling()
+    application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
